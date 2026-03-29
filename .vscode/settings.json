@@ -1,0 +1,28 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.bracketPairColorization.enabled": true,
+
+  "prettier.semi": false,
+  "prettier.singleQuote": true,
+  "prettier.trailingComma": "es5",
+  "prettier.printWidth": 100,
+
+  "[java]": {
+    "editor.defaultFormatter": "redhat.java",
+    "editor.tabSize": 4
+  },
+  "[go]": {
+    "editor.defaultFormatter": "golang.go"
+  },
+
+  "java.jdt.ls.vmargs": "-Xmx2G -Xms100m",
+
+  "go.useLanguageServer": true,
+
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/target": true,
+    "**/.next": true
+  }
+}

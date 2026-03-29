@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Debug Spring Boot",
+      "request": "launch",
+      "mainClass": "com.vendly.BackendApplication",
+      "projectName": "backend"
+    },
+    {
+      "name": "Debug Go Realtime",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/realtime/cmd/main.go"
+    }
+  ]
+}
