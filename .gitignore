@@ -1,0 +1,26 @@
+# Environment
+.env
+.env.local
+.env.production
+
+# Java
+backend/target/
+*.class
+
+# Node
+frontend/node_modules/
+frontend/.next/
+
+# Go
+realtime/bin/
+
+# Uploads
+uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.iml
