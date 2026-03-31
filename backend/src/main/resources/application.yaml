@@ -37,6 +37,14 @@ spring:
 server:
   port: 8080
   shutdown: graceful
+  max-http-request-header-size: 8KB
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    com.vendly: DEBUG
 
 management:
   endpoints:
