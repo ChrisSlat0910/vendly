@@ -1,13 +1,23 @@
 <configuration>
+
+    <!-- Default appender — aktif di semua profile termasuk saat tidak ada profile -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level [%X{correlationId:-no-id}] [%X{userId:-anon}] %logger{25} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Profile dev: tambah warna -->
     <springProfile name="dev">
-        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <appender name="CONSOLE_DEV" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
                 <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%X{correlationId:-no-id}] [%X{userId:-anon}] %cyan(%logger{25}) - %msg%n</pattern>
             </encoder>
         </appender>
-        <root level="INFO"><appender-ref ref="CONSOLE"/></root>
+        <root level="INFO"><appender-ref ref="CONSOLE_DEV"/></root>
     </springProfile>
 
+    <!-- Profile prod: JSON structured logging -->
     <springProfile name="prod">
         <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">
@@ -20,7 +30,13 @@
         <root level="INFO"><appender-ref ref="JSON"/></root>
     </springProfile>
 
+    <!-- Default root — pakai CONSOLE kalau tidak ada profile yang match -->
+    <springProfile name="!dev &amp; !prod">
+        <root level="INFO"><appender-ref ref="CONSOLE"/></root>
+    </springProfile>
+
     <logger name="org.hibernate.SQL"            level="WARN"/>
     <logger name="com.zaxxer.hikari"            level="WARN"/>
     <logger name="org.springframework.security" level="WARN"/>
+
 </configuration>

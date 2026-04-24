@@ -19,6 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -33,6 +34,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest req,
             HttpServletResponse res,
             FilterChain chain) throws ServletException, IOException {
+
         String header = req.getHeader("Authorization");
 
         if (header == null || !header.startsWith("Bearer ")) {
@@ -48,10 +50,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         try {
-            var userId = jwtService.extractUserId(token);
+            UUID userId = jwtService.extractUserId(token);
             User user = userRepository.findById(userId).orElse(null);
 
-            if (user != null && user.getIsActive() && user.getIsEmailVerified() && !user.isLocked()) {
+            if (user != null
+                    && user.getIsActive()
+                    && user.getIsEmailVerified()
+                    && !user.isLocked()) {
+
                 List<SimpleGrantedAuthority> authorities = new ArrayList<>();
                 authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
 
@@ -59,11 +65,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
                 }
 
-                var auth = new UsernamePasswordAuthenticationToken(user, null, authorities);
+                // principal = User entity — dipakai @AuthenticationPrincipal User user
+                // di controller
+                var auth = new UsernamePasswordAuthenticationToken(
+                        user, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(auth);
+
+                // inject userId ke MDC supaya muncul di setiap log request ini
                 CorrelationIdFilter.setUserId(userId.toString());
             }
+
         } catch (Exception e) {
+            // token valid tapi ada error lain — clear context, lanjut sebagai anonymous
             SecurityContextHolder.clearContext();
         }
 

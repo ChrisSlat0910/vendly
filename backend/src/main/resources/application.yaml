@@ -2,6 +2,8 @@ spring:
   datasource:
     url: ${DATABASE_URL}
     driver-class-name: org.postgresql.Driver
+    username: ${POSTGRES_USER:vendly_user}
+    password: ${POSTGRES_PASSWORD:vendly123}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -11,7 +13,8 @@ spring:
       leak-detection-threshold: 60000
       pool-name: VendlyPool
   jpa:
-    hibernate.ddl-auto: validate
+    hibernate:
+      ddl-auto: none
     show-sql: false
   flyway:
     enabled: true
@@ -21,16 +24,20 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
   mail:
-    host: ${MAIL_HOST}
+    host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    properties.mail.smtp:
-      auth: true
-      starttls.enable: true
-  servlet.multipart:
-    max-file-size: 5MB
-    max-request-size: 10MB
+    username: ${MAIL_USERNAME:placeholder}
+    password: ${MAIL_PASSWORD:placeholder}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
@@ -45,6 +52,7 @@ logging:
     org.springframework.web: DEBUG
     org.springframework.security: DEBUG
     com.vendly: DEBUG
+    org.flywaydb: DEBUG
 
 management:
   endpoints:
@@ -55,15 +63,21 @@ management:
     health:
       show-details: when-authorized
   health:
-    db.enabled: true
-    redis.enabled: true
-    diskSpace.enabled: true
+    db:
+      enabled: true
+    redis:
+      enabled: true
+    diskSpace:
+      enabled: true
+    mail:
+      enabled: false
   metrics:
-    export:
-      prometheus:
-        enabled: true
     tags:
       application: vendly
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 jwt:
   secret: ${JWT_SECRET}
