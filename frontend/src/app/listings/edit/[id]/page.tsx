@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { AlertCircle, ArrowLeft, Loader2, PackagePlus, Package, MapPin, Truck, Handshake, User } from 'lucide-react'
+import { AlertCircle, ArrowLeft, Loader2, PackagePlus, Package, MapPin, Truck, Handshake, User, Edit3 } from 'lucide-react'
 import { motion, Variants } from 'framer-motion'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
@@ -35,9 +35,10 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Card,
   CardContent,
@@ -54,26 +55,71 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-export default function CreateListingPage() {
+export default function EditListingPage() {
   const router = useRouter()
+  const params = useParams()
+  const id = params?.id as string
+
   const { user, isInitializing } = useAuth()
 
+  // Validasi user auth
   useEffect(() => {
     if (!isInitializing && !user) {
       router.push('/login')
     }
   }, [user, isInitializing, router])
 
+  // Form states
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState<number | ''>('')
   const [condition, setCondition] = useState('NEW')
   const [location, setLocation] = useState('')
+  const [status, setStatus] = useState('DRAFT')
   const [allowCod, setAllowCod] = useState(false)
   const [allowOffers, setAllowOffers] = useState(false)
 
-  const [isLoading, setIsLoading] = useState(false)
+  // Status & Fetch
+  const [isFetching, setIsFetching] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [notFound, setNotFound] = useState(false)
+
+  // Ambil data listing
+  useEffect(() => {
+    if (!id || !user) return
+
+    const fetchListing = async () => {
+      try {
+        setIsFetching(true)
+        setError('')
+        const data = await listingsApi.getById(id)
+        
+        // Pengecekan otorisasi
+        if (data.sellerId !== user.id) {
+          router.push('/dashboard')
+          return
+        }
+
+        setTitle(data.title || '')
+        setDescription(data.description || '')
+        setPrice(data.price || '')
+        setCondition(data.condition || 'NEW')
+        setLocation(data.location || '')
+        setStatus(data.status || 'DRAFT')
+        setAllowCod(data.allowCod ?? false)
+        setAllowOffers(data.allowOffers ?? false)
+      } catch (err: any) {
+        console.error('Failed to fetch listing for edit:', err)
+        setNotFound(true)
+        setError(err.response?.data?.message || 'Listing tidak ditemukan atau terjadi kesalahan server.')
+      } finally {
+        setIsFetching(false)
+      }
+    }
+
+    fetchListing()
+  }, [id, user, router])
 
   if (isInitializing || !user) {
     return (
@@ -112,7 +158,7 @@ export default function CreateListingPage() {
     }
 
     try {
-      setIsLoading(true)
+      setIsSubmitting(true)
       
       const payload = {
         title,
@@ -120,23 +166,63 @@ export default function CreateListingPage() {
         price: Number(price),
         condition,
         location,
+        status,
         allowCod,
         allowOffers,
       }
 
-      const createdData = await listingsApi.create(payload)
-
-      if (createdData && createdData.id) {
-        await listingsApi.update(createdData.id, { status: 'ACTIVE' })
-      }
-
+      await listingsApi.update(id, payload)
       router.push('/dashboard')
     } catch (err: any) {
-      console.error('Failed to create listing:', err)
-      setError(err.response?.data?.message || 'Gagal membuat listing. Pastikan data yang diisi benar dan coba lagi.')
+      console.error('Failed to update listing:', err)
+      setError(err.response?.data?.message || 'Gagal menyimpan perubahan. Coba lagi nanti.')
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
+  }
+
+  if (isFetching) {
+    return (
+      <div className="min-h-screen bg-background pb-12">
+        <nav className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="container mx-auto flex h-16 items-center px-4">
+            <Link href="/" className="flex items-center gap-2">
+              <span className="font-display text-2xl font-bold tracking-tight text-primary">Vendly</span>
+            </Link>
+          </div>
+        </nav>
+        <main className="container mx-auto px-4 py-8">
+          <div className="mb-6">
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="lg:col-span-3 space-y-6">
+              <Skeleton className="h-64 w-full rounded-xl" />
+              <Skeleton className="h-[400px] w-full rounded-xl" />
+            </div>
+            <div className="lg:col-span-2 space-y-4">
+              <Skeleton className="h-10 w-48" />
+              <Skeleton className="h-[500px] w-full rounded-xl" />
+            </div>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (notFound) {
+    return (
+      <div className="min-h-screen bg-background pb-12 flex flex-col items-center justify-center">
+        <div className="max-w-md text-center p-6 border border-border/50 bg-card rounded-xl shadow-lg">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Listing Tidak Ditemukan</h2>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <Button asChild>
+            <Link href="/dashboard">Kembali ke Dashboard</Link>
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -170,22 +256,22 @@ export default function CreateListingPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           
-          {/* KOLOM KIRI: FORM (60%) */}
+          {/* KOLOM KIRI: FORM CONFIG (60%) */}
           <motion.div variants={slideLeft} className="lg:col-span-3">
             <Card className="border-border/50 bg-card/60 backdrop-blur-md shadow-lg">
               <CardHeader className="space-y-1 pb-6 border-b border-border/30">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                    <PackagePlus className="h-6 w-6 text-primary" />
+                    <Edit3 className="h-6 w-6 text-primary" />
                   </div>
-                  <CardTitle className="text-2xl font-display">Buat Listing Baru</CardTitle>
+                  <CardTitle className="text-2xl font-display">Edit Listing</CardTitle>
                 </div>
                 <CardDescription className="text-base ml-14">
-                  Silakan isi detail barang atau jasa yang ingin Anda tawarkan kepada komunitas.
+                  Perbarui informasi barang atau jasa Anda untuk tetap relevan.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-8">
-                <form id="create-listing-form" onSubmit={handleSubmit} className="space-y-6">
+                <form id="edit-listing-form" onSubmit={handleSubmit} className="space-y-6">
                   
                   {error && (
                     <Alert variant="destructive" className="bg-destructive/10 text-destructive border-none">
@@ -239,18 +325,33 @@ export default function CreateListingPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
 
-                  {/* Location */}
-                  <div className="space-y-2.5">
-                    <Label htmlFor="location" className="text-base">Lokasi</Label>
-                    <Input
-                      id="location"
-                      placeholder="Contoh: Jakarta Selatan, Surabaya..."
-                      className="h-12 text-base bg-background/50"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                    />
+                    {/* Status */}
+                    <div className="space-y-2.5">
+                      <Label htmlFor="status" className="text-base">Status Listing</Label>
+                      <Select value={status} onValueChange={setStatus} required>
+                        <SelectTrigger id="status" className="h-12 text-base bg-background/50">
+                          <SelectValue placeholder="Pilih status..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="DRAFT">Draft</SelectItem>
+                          <SelectItem value="ACTIVE">Aktif (Tampil)</SelectItem>
+                          <SelectItem value="SOLD">Terjual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Location */}
+                    <div className="space-y-2.5">
+                      <Label htmlFor="location" className="text-base">Lokasi</Label>
+                      <Input
+                        id="location"
+                        placeholder="Contoh: Jakarta Selatan, Surabaya..."
+                        className="h-12 text-base bg-background/50"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                      />
+                    </div>
                   </div>
 
                   {/* Description */}
@@ -304,22 +405,22 @@ export default function CreateListingPage() {
                 </form>
               </CardContent>
               <CardFooter className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-border/30 bg-card/40 mt-2 p-6">
-                <Button asChild variant="outline" className="w-full sm:w-auto h-12" disabled={isLoading}>
+                <Button asChild variant="outline" className="w-full sm:w-auto h-12" disabled={isSubmitting}>
                   <Link href="/dashboard">Batal</Link>
                 </Button>
                 <Button 
                   type="submit" 
-                  form="create-listing-form" 
+                  form="edit-listing-form" 
                   className="w-full sm:w-auto h-12 hover:glow-primary" 
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                 >
-                  {isLoading ? (
+                  {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Menyimpan...
+                      Memperbarui...
                     </>
                   ) : (
-                    'Buat Listing Sekarang'
+                    'Simpan Perubahan'
                   )}
                 </Button>
               </CardFooter>
@@ -344,7 +445,9 @@ export default function CreateListingPage() {
                   <div className="aspect-square sm:aspect-video w-full bg-muted/20 relative flex items-center justify-center overflow-hidden">
                     <Package className="h-12 w-12 text-muted-foreground/30 transition-transform group-hover:scale-110" />
                     <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
-                      <Badge className="shadow-sm">ACTIVE</Badge>
+                      <Badge variant={status === 'SOLD' ? 'secondary' : 'default'} className="shadow-sm">
+                        {status || 'DRAFT'}
+                      </Badge>
                     </div>
                   </div>
                   
@@ -394,8 +497,8 @@ export default function CreateListingPage() {
                     <div className="aspect-video w-full bg-muted/20 relative flex items-center justify-center border-b border-border/50">
                       <Package className="h-16 w-16 text-muted-foreground/30" />
                       <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
-                        <Badge className="text-xs shadow-md">
-                          ACTIVE
+                        <Badge variant={status === 'SOLD' ? 'secondary' : 'default'} className="text-xs shadow-md">
+                          {status || 'DRAFT'}
                         </Badge>
                       </div>
                     </div>
@@ -415,7 +518,7 @@ export default function CreateListingPage() {
                     <CardContent className="p-4 pt-0">
                       <div className="prose prose-sm dark:prose-invert max-w-none">
                         <h3 className="text-sm font-semibold mb-1">Deskripsi Produk</h3>
-                        <p className="whitespace-pre-line text-muted-foreground text-xs leading-relaxed max-h-32 overflow-y-auto pr-1 scrollbar-thin">
+                        <p className="whitespace-pre-line text-muted-foreground text-xs leading-relaxed max-h-40 overflow-y-auto pr-1 scrollbar-thin">
                           {description || 'Deskripsi listing akan tampil di sini...'}
                         </p>
                       </div>
