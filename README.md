@@ -1,9 +1,11 @@
-# Vendly — Community-Based Marketplace API
+# Vendly — Community-Based Marketplace
 
-> A production-grade REST API backend for a community-driven marketplace platform, built with Spring Boot 4.x and Java 21.
+> A production-grade full-stack marketplace platform built with Spring Boot 4.x, Next.js, PostgreSQL, and Redis.
 
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.5-6DB33F?style=flat-square&logo=springboot&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791?style=flat-square&logo=postgresql&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)
@@ -12,7 +14,7 @@
 
 ## Overview
 
-Vendly is a marketplace REST API that supports community-scoped listings, seller stores, buyer-seller transactions, disputes, and a trust & safety system. The project demonstrates a modular Spring Boot 4.x architecture with clean separation of concerns, Flyway-managed database migrations, and JWT-based stateless authentication.
+Vendly is a community-based marketplace web application where users can buy, sell, and trade items within trusted communities. The project demonstrates a production-grade full-stack architecture with security hardening and modern development practices.
 
 ---
 
@@ -20,157 +22,105 @@ Vendly is a marketplace REST API that supports community-scoped listings, seller
 
 | Layer | Technology |
 |---|---|
-| Language | Java 21 (LTS) |
+| Language (Backend) | Java 21 (LTS) |
 | Framework | Spring Boot 4.0.5 |
-| Security | Spring Security 7.x, JWT (JJWT 0.12.3) |
+| Security | Spring Security 7.x, JWT |
 | ORM | Hibernate 7.2 / Spring Data JPA |
 | Database | PostgreSQL 17 |
-| Cache / Session | Redis 7 |
+| Cache / Rate Limiting | Redis 7 |
 | Migration | Flyway 11.x |
-| AOP | Spring AspectJ (spring-boot-starter-aspectj) |
+| AOP | Spring AspectJ |
+| Language (Frontend) | TypeScript 5 |
+| Framework (Frontend) | Next.js 15 (App Router) |
+| Styling | Tailwind CSS + shadcn/ui |
+| HTTP Client | Axios with interceptors |
+| Animation | Framer Motion |
+| Charts | Recharts |
 | Containerization | Docker + Docker Compose |
-| API Docs | SpringDoc OpenAPI (Swagger UI) |
-| Build | Maven 3.9 (Maven Wrapper) |
-
----
-
-## Architecture
-
-```
-vendly/
-├── backend/                  ← Spring Boot 4.x (this service)
-│   ├── src/main/java/com/vendly/backend/
-│   │   ├── admin/            ← Admin role management
-│   │   ├── auth/             ← JWT auth, OTP, password reset
-│   │   ├── common/           ← Filters, exceptions, AOP, config
-│   │   └── user/             ← User profile
-│   └── src/main/resources/
-│       ├── db/migration/     ← Flyway migrations (V1–V19)
-│       └── application.yaml
-├── frontend/                 ← Next.js (WIP)
-├── realtime/                 ← Go WebSocket service (WIP)
-├── nginx/                    ← Reverse proxy config
-└── docker-compose.yml
-```
-
-### Request Flow
-
-```
-Client → Nginx → Spring Boot
-                    ├── CorrelationIdFilter   (request tracing)
-                    ├── RateLimitFilter       (Redis-based rate limiting)
-                    ├── JwtAuthFilter         (stateless auth)
-                    └── Controller → Service → Repository → PostgreSQL
-```
 
 ---
 
 ## Implemented Features
 
-### Authentication & Security
+### Backend
+
 - User registration with email OTP verification
-- Login with JWT access token (15 min) + httpOnly refresh token cookie (7 days)
-- Token refresh endpoint
-- Logout with refresh token revocation
-- Account lockout after 5 failed login attempts (15 min lockout)
-- Forgot password / reset password with time-limited tokens (15 min)
-- BCrypt password hashing
+- Login with JWT access token + httpOnly refresh token cookie
+- Token refresh with automatic rotation
+- Account lockout after failed attempts
+- Forgot/reset password flow
+- Role-based access control via `@RequireAdmin` AOP annotation
+- Listing CRUD with full-text search, pagination, soft delete
+- Admin endpoints — manage users and listings
+- Redis rate limiting per IP
+- Correlation ID request tracing
+- Flyway versioned migrations (V1–V20)
 
-### Authorization
-- Role-based access control via `admin_roles` table
-- Custom `@RequireAdmin` annotation powered by Spring AOP aspect
-- Admin endpoints: grant/revoke admin, check admin status
+### Frontend
 
-### Infrastructure
-- **Flyway migrations** — 19 versioned SQL migrations (V1–V19)
-- **Soft delete** — `deleted_at` column + `@SQLRestriction` on JPA entities
-- **Rate limiting** — Redis-backed per-IP rate limiting via custom filter
-- **Correlation ID** — every request gets a unique trace ID in response headers
-- **Docker Compose** — single command to run postgres + redis + backend
+- Landing page with category grid and trending section
+- Browse listing — search, condition filter, COD/NEGO badges
+- Listing detail — seller info, owner actions
+- Create/Edit listing with live preview
+- Dashboard — profile card, stats, performance chart, inbox
+- Admin panel — user management, listing management
+- Auth with persistent session via refresh token cookie
+- Dark/light theme toggle
+- Responsive design
 
 ---
 
 ## Database Schema
 
-19 Flyway migrations covering:
-
-| Migration | Tables Created |
-|---|---|
-| V1–V2 | `users`, `user_tokens`, `admin_roles` |
-| V3 | `credit_score_history`, `bans` |
-| V4 | `file_uploads` |
-| V5 | `tags`, `entity_tags` |
-| V6 | `communities`, `channels`, `messages` |
-| V7 | `listings`, `listing_images` |
-| V8 | `transactions`, `offers`, `price_requests`, `private_messages` |
-| V9 | `disputes`, `dispute_messages`, `dispute_evidences` |
-| V10–V11 | `notifications`, `email_logs` |
-| V12 | `stores`, `store_policies`, `store_followers` |
-| V13 | Seed data (admin + demo users) |
-| V14 | `password_resets` |
-| V15 | `seller_reviews` |
-| V16 | `reports` |
-| V17–V19 | Soft delete columns + indexes |
+20 Flyway migrations covering users, auth, listings, transactions, disputes, communities, stores, notifications, reviews, reports, and seed data.
 
 ---
 
 ## API Endpoints
 
-### Auth — `/api/v1/auth`
+### Auth `/api/v1/auth`
+`POST /register` · `POST /login` · `POST /refresh` · `POST /logout` · `POST /forgot-password` · `POST /reset-password`
 
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/register` | ❌ | Register new user |
-| POST | `/verify-email` | ❌ | Verify email with OTP |
-| POST | `/resend-otp` | ❌ | Resend OTP |
-| POST | `/login` | ❌ | Login, returns JWT + sets refresh cookie |
-| POST | `/refresh` | 🍪 Cookie | Refresh access token |
-| POST | `/logout` | 🍪 Cookie | Revoke refresh token |
-| POST | `/forgot-password` | ❌ | Request password reset token |
-| GET | `/validate-reset-token` | ❌ | Validate reset token |
-| POST | `/reset-password` | ❌ | Reset password with token |
+### Listings `/api/v1/listings`
+`GET /` · `GET /{id}` · `GET /my` · `POST /` · `PUT /{id}` · `DELETE /{id}`
 
-### Admin — `/api/v1/admin` *(requires admin JWT)*
+### Users `/api/v1/users`
+`GET /me` · `GET /{id}/profile`
 
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/users/{id}/grant-admin` | Grant admin role to user |
-| DELETE | `/users/{id}/revoke-admin` | Revoke admin role from user |
-| GET | `/users/{id}/is-admin` | Check if user is admin |
-
-### Users — `/api/v1/users`
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| GET | `/{id}/profile` | ❌ | Get public user profile |
+### Admin `/api/v1/admin` *(ADMIN only)*
+`GET /users` · `POST /users/{id}/grant-admin` · `DELETE /users/{id}/revoke-admin` · `GET /listings` · `DELETE /listings/{id}`
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
-
 - Docker Desktop 4.x
-- Git
+- Node.js 20+
 
 ### Setup
 
 ```bash
-# 1. Clone repository
+# Clone
 git clone https://github.com/ChrisSlat0910/vendly.git
 cd vendly
 
-# 2. Copy environment file
-cp .env.example .env
-# Edit .env if needed (defaults work for local development)
-
-# 3. Start all services
+# Start backend
 docker compose up postgres redis backend
 
-# 4. Verify backend is running
-curl http://localhost:8080/actuator/health
-# → {"status":"UP"}
+# Start frontend
+cd frontend
+npm install
+npm run dev
 ```
+
+### Seed Accounts
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@vendly.id` | `Test1234` |
+| Seller | `seller@vendly.id` | `Test1234` |
+| Buyer | `buyer@vendly.id` | `Test1234` |
 
 ### Environment Variables
 
@@ -183,84 +133,44 @@ JWT_SECRET=<your-base64-secret>
 JWT_ACCESS_TOKEN_EXPIRY_MS=900000
 JWT_REFRESH_TOKEN_EXPIRY_MS=604800000
 APP_FRONTEND_URL=http://localhost:3000
-```
-
-### Seed Accounts
-
-After startup, these accounts are available:
-
-| Role | Email | Password |
-|---|---|---|
-| Admin | `admin@vendly.id` | `Test1234` |
-| Seller | `seller@vendly.id` | `Test1234` |
-| Buyer | `buyer@vendly.id` | `Test1234` |
-
-### Quick API Test
-
-```bash
-# Register
-curl -X POST http://localhost:8080/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"testuser","email":"test@test.com","password":"Test1234","displayName":"Test User"}'
-
-# Login
-curl -X POST http://localhost:8080/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"seller@vendly.id","password":"Test1234"}'
-```
-
----
-
-## API Documentation
-
-Swagger UI is available at:
-
-```
-http://localhost:8080/swagger-ui.html
+NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
 ```
 
 ---
 
 ## Key Design Decisions
 
-**Spring Boot 4.x on Java 21** — Uses the latest Spring Boot generation requiring `spring-boot-starter-aspectj` (renamed from `spring-boot-starter-aop` in 4.0).
-
-**Stateless JWT Auth** — Access tokens stored in JS memory (short-lived), refresh tokens in httpOnly cookies scoped to `/api/v1/auth`. No server-side session.
-
-**Flyway over Hibernate DDL** — All schema changes are versioned SQL migrations, never `hibernate.ddl-auto=update`. Ensures reproducible environments.
-
-**Soft Delete via @SQLRestriction** — Deleted records are filtered at the ORM level using `@SQLRestriction("deleted_at IS NULL")`, transparent to all queries.
-
-**AOP Admin Guard** — `@RequireAdmin` annotation intercepted by `AdminAspect` — no boilerplate security checks in controllers.
+- **Stateless JWT** — Access tokens in JS memory, refresh tokens in httpOnly cookies
+- **Flyway over Hibernate DDL** — All schema changes versioned, never `ddl-auto=update`
+- **Soft Delete** — `@SQLRestriction("deleted_at IS NULL")` transparent to all queries
+- **AOP Admin Guard** — `@RequireAdmin` intercepted by aspect, no boilerplate in controllers
+- **Redis Rate Limiting** — Per-IP on auth endpoints, prevents brute force
 
 ---
 
 ## WIP / Roadmap
 
-- [ ] Listing CRUD (create, edit, publish, delete)
-- [ ] File upload (listing images)
-- [ ] Transaction flow (buy request → payment → confirmation)
-- [ ] Offer / price negotiation
-- [ ] Seller store profile
-- [ ] Community channels & messaging
-- [ ] Email notifications (Gmail SMTP)
-- [ ] Frontend — Next.js
-- [ ] Realtime — Go WebSocket service
+- [ ] File upload — listing images
+- [ ] Community system — join, rank progression
+- [ ] Transaction flow — escrow, COD confirmation
+- [ ] Seller reviews & rating
+- [ ] Dispute system
+- [ ] Real-time messaging — Go WebSocket service
+- [ ] Email notifications
 - [ ] CI/CD pipeline
+- [ ] Production deployment
 
 ---
 
 ## Project Status
 
-> **Active development** — Backend auth system complete, working toward full marketplace MVP.
+> **Active development** — Full-stack MVP complete. Auth, listing CRUD, admin panel, and responsive frontend working.
 
 ---
 
 ## Author
 
-**Chris** — Master's student in Teknik Informatika, Universitas Hasanuddin  
+**Chris** — Master's student in Teknik Informatika, Universitas Hasanuddin
 Full Stack Developer · Backend Engineer
 
----
-
-*Built with Spring Boot 4.x, PostgreSQL, Redis, Docker*
+*Built with Spring Boot 4.x, Next.js 15, PostgreSQL, Redis, Docker*
