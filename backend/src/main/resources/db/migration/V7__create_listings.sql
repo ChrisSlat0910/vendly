@@ -33,8 +33,8 @@ CREATE TABLE listing_images (
 
 CREATE INDEX idx_listings_seller        ON listings(seller_id);
 CREATE INDEX idx_listings_community     ON listings(community_id);
-CREATE INDEX idx_listings_status        ON listings(status) WHERE deleted_at IS NULL;
-CREATE INDEX idx_listings_price         ON listings(price) WHERE status = 'ACTIVE' AND deleted_at IS NULL;
+CREATE INDEX idx_listings_status        ON listings(status);
+CREATE INDEX idx_listings_price         ON listings(price) WHERE status = 'ACTIVE';
 CREATE INDEX idx_listings_search        ON listings USING gin(to_tsvector('english', title || ' ' || COALESCE(description, '')));
 CREATE INDEX idx_listing_images_order   ON listing_images(listing_id, position);
 CREATE INDEX idx_listing_images_primary ON listing_images(listing_id) WHERE position = 0;

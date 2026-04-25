@@ -15,4 +15,4 @@ CREATE TABLE notifications (
 
 CREATE INDEX idx_notifications_user    ON notifications(user_id, created_at DESC);
 CREATE INDEX idx_notifications_unread  ON notifications(user_id) WHERE is_read = FALSE;
-CREATE INDEX idx_notifications_active  ON notifications(user_id) WHERE expires_at IS NULL OR expires_at > NOW();
+CREATE INDEX idx_notifications_active  ON notifications(user_id) WHERE expires_at IS NULL;

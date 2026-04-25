@@ -21,4 +21,4 @@ CREATE TABLE bans (
 
 CREATE INDEX idx_credit_history_user ON credit_score_history(user_id);
 CREATE INDEX idx_bans_user           ON bans(user_id);
-CREATE INDEX idx_bans_active         ON bans(user_id) WHERE expires_at > NOW() OR is_permanent = TRUE;
+CREATE INDEX idx_bans_active ON bans(user_id) WHERE is_permanent = TRUE;
