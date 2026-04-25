@@ -73,6 +73,29 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok("Logout berhasil.", null));
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest req) {
+        authService.forgotPassword(req.getEmail());
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Jika email terdaftar, link reset password telah dikirim.", null));
+    }
+
+    @GetMapping("/validate-reset-token")
+    public ResponseEntity<ApiResponse<Boolean>> validateResetToken(
+            @RequestParam String token) {
+        boolean valid = authService.validateResetToken(token);
+        return ResponseEntity.ok(ApiResponse.ok("Token valid", valid));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest req) {
+        authService.resetPassword(req);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Password berhasil direset. Silakan login dengan password baru.", null));
+    }
+
     // ─── Helper ───────────────────────────────────────────────────────────────
 
     private String extractRefreshCookie(HttpServletRequest req) {

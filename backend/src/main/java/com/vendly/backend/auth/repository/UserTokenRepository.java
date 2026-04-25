@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,6 +14,9 @@ import java.util.UUID;
 public interface UserTokenRepository extends JpaRepository<UserToken, UUID> {
 
     Optional<UserToken> findByTokenHash(String tokenHash);
+
+    @Query("SELECT t FROM UserToken t WHERE t.userId = :userId AND t.revokedAt IS NULL AND t.expiresAt > CURRENT_TIMESTAMP")
+    List<UserToken> findActiveByUserId(UUID userId);
 
     @Modifying
     @Query("UPDATE UserToken t SET t.revokedAt = CURRENT_TIMESTAMP " +

@@ -1,7 +1,9 @@
 package com.vendly.backend.auth.service;
 
 import com.vendly.backend.auth.dto.*;
+import com.vendly.backend.auth.entity.PasswordReset;
 import com.vendly.backend.auth.entity.UserToken;
+import com.vendly.backend.auth.repository.PasswordResetRepository;
 import com.vendly.backend.auth.repository.UserTokenRepository;
 import com.vendly.backend.common.exception.*;
 import com.vendly.backend.user.entity.User;
@@ -29,6 +31,7 @@ public class AuthService {
 
     private final UserRepository userRepo;
     private final UserTokenRepository tokenRepo;
+    private final PasswordResetRepository passwordResetRepo;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final OtpService otpService;
@@ -62,9 +65,7 @@ public class AuthService {
 
         String otp = otpService.generateAndStore(user.getEmail());
         // TODO Fase 10: emailService.sendOtpVerification(user.getEmail(), otp)
-        // Sementara log OTP untuk development — HAPUS sebelum production
         log.info("[DEV ONLY] OTP for {} = {}", user.getEmail(), otp);
-
         log.info("User registered userId={} email={}", user.getId(), user.getEmail());
     }
 
@@ -190,6 +191,62 @@ public class AuthService {
         log.info("User logged out");
     }
 
+    // ─── Forgot Password ─────────────────────────────────────────────────────
+
+    @Transactional
+    public void forgotPassword(String email) {
+        userRepo.findByEmail(email.toLowerCase()).ifPresent(user -> {
+            passwordResetRepo.invalidateAllForUser(user.getId());
+
+            String token = UUID.randomUUID().toString();
+            PasswordReset reset = PasswordReset.builder()
+                    .userId(user.getId())
+                    .token(token)
+                    .expiresAt(LocalDateTime.now().plusMinutes(15))
+                    .build();
+            passwordResetRepo.save(reset);
+
+            // TODO Fase 10: emailService.sendPasswordReset(user.getEmail(), token)
+            log.info("[DEV ONLY] Reset token for {} = {}", user.getEmail(), token);
+        });
+    }
+
+    // ─── Validate Reset Token ─────────────────────────────────────────────────
+
+    public boolean validateResetToken(String token) {
+        return passwordResetRepo.findByToken(token)
+                .map(PasswordReset::isValid)
+                .orElse(false);
+    }
+
+    // ─── Reset Password ───────────────────────────────────────────────────────
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest req) {
+        PasswordReset reset = passwordResetRepo.findByToken(req.getToken())
+                .orElseThrow(() -> new BusinessException("Token tidak valid"));
+
+        if (!reset.isValid()) {
+            throw new BusinessException("Token sudah expired atau sudah dipakai");
+        }
+
+        User user = userRepo.findById(reset.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User tidak ditemukan"));
+
+        user.setPasswordHash(passwordEncoder.encode(req.getNewPassword()));
+        userRepo.save(user);
+
+        reset.setUsedAt(LocalDateTime.now());
+        passwordResetRepo.save(reset);
+
+        tokenRepo.findActiveByUserId(user.getId()).forEach(t -> {
+            t.setRevokedAt(LocalDateTime.now());
+            tokenRepo.save(t);
+        });
+
+        log.info("Password reset for userId={}", user.getId());
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private String generateAndStoreRefreshToken(UUID userId) {
@@ -206,8 +263,8 @@ public class AuthService {
 
     private void setRefreshCookie(HttpServletResponse res, String token) {
         Cookie cookie = new Cookie("refresh_token", token);
-        cookie.setHttpOnly(true); // tidak bisa diakses JavaScript
-        cookie.setSecure(false); // set true di production (HTTPS)
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false);
         cookie.setPath("/api/v1/auth");
         cookie.setMaxAge((int) (refreshTokenExpiryMs / 1000));
         res.addCookie(cookie);
@@ -218,7 +275,7 @@ public class AuthService {
         cookie.setHttpOnly(true);
         cookie.setSecure(false);
         cookie.setPath("/api/v1/auth");
-        cookie.setMaxAge(0); // expire immediately
+        cookie.setMaxAge(0);
         res.addCookie(cookie);
     }
 
