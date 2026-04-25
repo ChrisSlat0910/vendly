@@ -11,10 +11,12 @@ export interface CreateListingRequest {
 }
 
 export const listingsApi = {
-  browse: async (keyword?: string, page = 0) => {
+  browse: async (paramsObj?: { keyword?: string; condition?: string; category?: string; page?: number }) => {
     const params = new URLSearchParams()
-    if (keyword) params.set('keyword', keyword)
-    params.set('page', String(page))
+    if (paramsObj?.keyword) params.set('keyword', paramsObj.keyword)
+    if (paramsObj?.condition) params.set('condition', paramsObj.condition)
+    if (paramsObj?.category) params.set('category', paramsObj.category)
+    params.set('page', String(paramsObj?.page || 0))
     params.set('size', '20')
     const res = await apiClient.get(`/listings?${params}`)
     return res.data.data

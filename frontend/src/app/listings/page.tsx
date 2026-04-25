@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Search, MapPin, Package, ArrowRight } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Search, MapPin, Package, ArrowRight, User, Truck, Handshake, Loader2 } from 'lucide-react'
 
 import { listingsApi } from '@/lib/api/listings'
+import { useAuth } from '@/lib/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -25,20 +26,43 @@ interface Listing {
   condition: string
   status: string
   location: string
+  allowCod: boolean
+  allowOffers: boolean
+  sellerUsername: string
+  description: string
 }
 
-export default function BrowseListingsPage() {
+const CONDITION_FILTERS = [
+  { value: 'ALL', label: 'Semua' },
+  { value: 'NEW', label: 'Baru' },
+  { value: 'LIKE_NEW', label: 'Seperti Baru' },
+  { value: 'GOOD', label: 'Bagus' },
+  { value: 'FAIR', label: 'Cukup' },
+]
+
+function BrowseListingsContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { user, isInitializing } = useAuth()
+
   const [listings, setListings] = useState<Listing[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [searchKeyword, setSearchKeyword] = useState('')
-  const [currentQuery, setCurrentQuery] = useState('')
 
-  const fetchListings = async (keyword?: string) => {
+  // Initialize state from URL params
+  const initialKeyword = searchParams.get('keyword') || ''
+  const initialCondition = searchParams.get('condition') || 'ALL'
+  
+  const [searchKeyword, setSearchKeyword] = useState(initialKeyword)
+  const [currentKeyword, setCurrentKeyword] = useState(initialKeyword)
+  const [currentCondition, setCurrentCondition] = useState(initialCondition)
+
+  const fetchListings = async (keyword: string, condition: string) => {
     try {
       setIsLoading(true)
-      const data = await listingsApi.browse(keyword)
-      // data could be a paginated response (with .content) or an array
+      const data = await listingsApi.browse({ 
+        keyword: keyword || undefined, 
+        condition: condition !== 'ALL' ? condition : undefined 
+      })
       setListings(data.content || data || [])
     } catch (err) {
       console.error('Failed to fetch listings:', err)
@@ -48,15 +72,35 @@ export default function BrowseListingsPage() {
     }
   }
 
-  // Fetch initial data
+  // Fetch data when URL params change
   useEffect(() => {
-    fetchListings()
-  }, [])
+    const keyword = searchParams.get('keyword') || ''
+    const condition = searchParams.get('condition') || 'ALL'
+    setCurrentKeyword(keyword)
+    setSearchKeyword(keyword)
+    setCurrentCondition(condition)
+    fetchListings(keyword, condition)
+  }, [searchParams])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    setCurrentQuery(searchKeyword)
-    fetchListings(searchKeyword)
+    updateUrlParams(searchKeyword, currentCondition)
+  }
+
+  const handleConditionSelect = (conditionValue: string) => {
+    updateUrlParams(currentKeyword, conditionValue)
+  }
+
+  const updateUrlParams = (keyword: string, condition: string) => {
+    const params = new URLSearchParams()
+    if (keyword) params.set('keyword', keyword)
+    if (condition && condition !== 'ALL') params.set('condition', condition)
+    
+    // Check if category exists and keep it
+    const category = searchParams.get('category')
+    if (category) params.set('category', category)
+
+    router.push(`/listings?${params.toString()}`)
   }
 
   const formatRupiah = (price: number) => {
@@ -78,12 +122,30 @@ export default function BrowseListingsPage() {
             </span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
-            <Button asChild variant="ghost" className="text-muted-foreground hidden sm:inline-flex">
-              <Link href="/dashboard">Dashboard</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/listings/create">Buat Listing</Link>
-            </Button>
+            {isInitializing ? (
+              <div className="flex gap-2">
+                <Skeleton className="h-9 w-20 rounded-md" />
+                <Skeleton className="h-9 w-24 rounded-md" />
+              </div>
+            ) : user ? (
+              <>
+                <Button asChild variant="ghost" className="text-muted-foreground hidden sm:inline-flex">
+                  <Link href="/dashboard">Dashboard</Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/listings/create">Buat Listing</Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button asChild variant="ghost" className="text-muted-foreground hidden sm:inline-flex">
+                  <Link href="/login">Sign In</Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/register">Daftar</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -114,14 +176,43 @@ export default function BrowseListingsPage() {
               Cari
             </Button>
           </form>
+
+          {/* Condition Filter Bar */}
+          <div className="flex flex-wrap gap-2 pt-2">
+            {CONDITION_FILTERS.map((filter) => {
+              const isActive = currentCondition === filter.value
+              return (
+                <button
+                  key={filter.value}
+                  onClick={() => handleConditionSelect(filter.value)}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
-        {/* Current Query Display */}
-        {currentQuery && !isLoading && (
-          <p className="mb-6 text-muted-foreground">
-            Menampilkan hasil untuk: <span className="font-semibold text-foreground">&quot;{currentQuery}&quot;</span>
+        {/* Total Count & Current Query */}
+        <div className="mb-6 flex flex-col sm:flex-row justify-between text-muted-foreground font-medium">
+          <p>
+            {isLoading ? (
+               <Skeleton className="h-5 w-40" />
+            ) : (
+               `Menampilkan ${listings.length} listing`
+            )}
           </p>
-        )}
+          {currentKeyword && !isLoading && (
+            <p>
+               hasil untuk: <span className="font-bold text-foreground">&quot;{currentKeyword}&quot;</span>
+            </p>
+          )}
+        </div>
 
         {/* Listings Grid */}
         {isLoading ? (
@@ -135,11 +226,11 @@ export default function BrowseListingsPage() {
                   <Skeleton className="h-5 w-3/4" />
                   <Skeleton className="h-6 w-1/2" />
                   <div className="flex gap-2 pt-2">
-                    <Skeleton className="h-5 w-16 rounded-full" />
+                    <Skeleton className="h-5 w-16" />
                     <Skeleton className="h-4 w-24" />
                   </div>
                 </CardContent>
-                <CardFooter className="p-4 pt-0">
+                <CardFooter className="p-4 pt-0 mt-3">
                   <Skeleton className="h-10 w-full" />
                 </CardFooter>
               </Card>
@@ -150,15 +241,11 @@ export default function BrowseListingsPage() {
             <Package className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
             <h3 className="text-xl font-medium text-foreground mb-2">Tidak ada listing ditemukan</h3>
             <p className="text-sm mb-6 max-w-md mx-auto">
-              Maaf, kami tidak dapat menemukan barang yang sesuai dengan pencarian Anda. Silakan coba kata kunci lain.
+              Maaf, kami tidak dapat menemukan barang yang sesuai dengan pencarian Anda. Silakan coba kata kunci atau filter lain.
             </p>
-            {currentQuery && (
-              <Button variant="outline" onClick={() => {
-                setSearchKeyword('')
-                setCurrentQuery('')
-                fetchListings('')
-              }}>
-                Hapus Pencarian
+            {(currentKeyword || currentCondition !== 'ALL') && (
+              <Button variant="outline" onClick={() => updateUrlParams('', 'ALL')}>
+                Hapus Filter Pencarian
               </Button>
             )}
           </Card>
@@ -171,7 +258,8 @@ export default function BrowseListingsPage() {
               >
                 <div className="aspect-square sm:aspect-video w-full bg-muted/20 relative flex items-center justify-center overflow-hidden">
                   <Package className="h-12 w-12 text-muted-foreground/30 transition-transform group-hover:scale-110" />
-                  <div className="absolute top-3 right-3">
+                  <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end">
+                    {/* Status Badge */}
                     <Badge variant={item.status === 'SOLD' ? 'secondary' : 'default'} className="shadow-sm">
                       {item.status || 'AVAILABLE'}
                     </Badge>
@@ -179,24 +267,40 @@ export default function BrowseListingsPage() {
                 </div>
                 
                 <CardHeader className="p-4 pb-2">
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    <Badge variant="outline" className="text-[10px] tracking-wider uppercase border-primary/20 text-primary bg-primary/5">
+                      {item.condition}
+                    </Badge>
+                    {item.allowCod && (
+                      <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20 text-[10px]">
+                        <Truck className="mr-1 h-3 w-3" /> COD
+                      </Badge>
+                    )}
+                    {item.allowOffers && (
+                      <Badge variant="outline" className="bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border-blue-500/20 text-[10px]">
+                        <Handshake className="mr-1 h-3 w-3" /> NEGO
+                      </Badge>
+                    )}
+                  </div>
                   <CardTitle className="line-clamp-2 text-lg leading-tight" title={item.title}>
                     {item.title}
                   </CardTitle>
-                  <div className="text-xl font-bold text-primary mt-2">
+                  <div className="text-xl font-bold text-primary mt-2 flex flex-col gap-1">
                     {formatRupiah(item.price)}
                   </div>
                 </CardHeader>
                 
                 <CardContent className="p-4 pt-0 flex-grow space-y-3">
-                  <div className="flex items-center justify-between mt-1">
-                    <Badge variant="outline" className="text-[10px] tracking-wider uppercase border-primary/20 text-primary bg-primary/5">
-                      {item.condition}
-                    </Badge>
+                  <div className="flex items-center text-xs text-muted-foreground font-medium">
+                    <User className="mr-1.5 h-3.5 w-3.5" />
+                    <span className="truncate">{item.sellerUsername || 'Anonim'}</span>
+                  </div>
+                  {item.location && (
                     <div className="flex items-center text-xs text-muted-foreground">
                       <MapPin className="h-3 w-3 mr-1" />
-                      <span className="truncate max-w-[100px]" title={item.location}>{item.location || 'Online'}</span>
+                      <span className="truncate max-w-[150px]" title={item.location}>{item.location}</span>
                     </div>
-                  </div>
+                  )}
                 </CardContent>
                 
                 <CardFooter className="p-4 pt-0 mt-auto">
@@ -213,5 +317,19 @@ export default function BrowseListingsPage() {
         )}
       </main>
     </div>
+  )
+}
+
+export default function BrowseListingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <BrowseListingsContent />
+    </Suspense>
   )
 }

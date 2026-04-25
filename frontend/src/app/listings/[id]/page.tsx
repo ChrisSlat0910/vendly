@@ -15,6 +15,8 @@ import {
 } from 'lucide-react'
 
 import { listingsApi } from '@/lib/api/listings'
+import { useAuth } from '@/lib/auth-context'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -42,8 +44,11 @@ interface ListingDetail {
 }
 
 export default function ListingDetailPage() {
+  const router = useRouter()
   const params = useParams()
   const id = params?.id as string
+
+  const { user, isInitializing } = useAuth()
 
   const [listing, setListing] = useState<ListingDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -70,6 +75,12 @@ export default function ListingDetailPage() {
 
     fetchListing()
   }, [id])
+
+  useEffect(() => {
+    if (!isInitializing && !user && listing) {
+      router.push(`/login?redirect=/listings/${id}`)
+    }
+  }, [isInitializing, user, listing, id, router])
 
   const formatRupiah = (price: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -112,7 +123,11 @@ export default function ListingDetailPage() {
           </Button>
         </div>
 
-        {error ? (
+        {isInitializing ? (
+          <div className="flex h-64 items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
+          </div>
+        ) : error ? (
           <div className="max-w-2xl mx-auto mt-12">
             <Alert variant="destructive" className="bg-destructive/10 text-destructive border-none">
               <AlertCircle className="h-5 w-5" />
