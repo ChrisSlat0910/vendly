@@ -1,4 +1,4 @@
-import apiClient, { setAccessToken } from './client'
+import apiClient, { setAccessToken, clearTokens } from './client'
 
 export interface RegisterRequest {
   username: string
@@ -25,7 +25,18 @@ export const authApi = {
   },
 
   logout: async () => {
-    await apiClient.post('/auth/logout', {}, { withCredentials: true })
-    window.location.href = '/'
+    try {
+      await apiClient.post('/auth/logout', {}, { withCredentials: true })
+    } catch {
+      // ignore error, tetap logout
+    } finally {
+      clearTokens()
+      window.location.href = '/login'
+    }
+  },
+
+  getMe: async () => {
+    const res = await apiClient.get('/users/me')
+    return res.data.data
   },
 }

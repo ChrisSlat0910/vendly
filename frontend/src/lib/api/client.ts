@@ -23,17 +23,7 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (res) => res,
-  async (error) => {
-    if (error.response?.status === 401) {
-      try {
-        const { data } = await axios.post('/api/v1/auth/refresh', {}, { withCredentials: true })
-        setAccessToken(data.data.accessToken)
-        return apiClient(error.config)
-      } catch {
-        clearTokens()
-        window.location.href = '/login'
-      }
-    }
+  (error) => {
     return Promise.reject(error)
   }
 )

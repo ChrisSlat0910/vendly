@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const profileRes = await apiClient.get('/users/me')
         setUser(profileRes.data.data)
       } catch {
+        // Refresh gagal — user tidak login, biarkan saja
         clearTokens()
       } finally {
         setIsInitializing(false)
@@ -40,10 +41,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     init()
   }, [])
 
-  const logout = () => {
-    clearTokens()
-    setUser(null)
-    window.location.href = '/login'
+  const logout = async () => {
+    try {
+      await apiClient.post('/auth/logout', {}, { withCredentials: true })
+    } catch {
+      // ignore
+    } finally {
+      clearTokens()
+      setUser(null)
+      window.location.href = '/login'
+    }
   }
 
   const isAuthenticated = !!user && !!getAccessToken()
