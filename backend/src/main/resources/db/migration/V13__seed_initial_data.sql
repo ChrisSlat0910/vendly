@@ -6,7 +6,7 @@ INSERT INTO users (
     'a0000000-0000-0000-0000-000000000001',
     'admin',
     'admin@vendly.id',
-    '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    '$2a$10$hW6Z4ogM8yg/QWwpFnnJaue5eOXJjQfunLFTcSlT1wmXfVNFkX0P.',
     'Platform Admin',
     TRUE, TRUE, 100
 ),
@@ -14,7 +14,7 @@ INSERT INTO users (
     'a0000000-0000-0000-0000-000000000002',
     'demo_seller',
     'seller@vendly.id',
-    '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    '$2a$10$hW6Z4ogM8yg/QWwpFnnJaue5eOXJjQfunLFTcSlT1wmXfVNFkX0P.',
     'Demo Seller',
     TRUE, TRUE, 100
 ),
@@ -22,7 +22,7 @@ INSERT INTO users (
     'a0000000-0000-0000-0000-000000000003',
     'demo_buyer',
     'buyer@vendly.id',
-    '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    '$2a$10$hW6Z4ogM8yg/QWwpFnnJaue5eOXJjQfunLFTcSlT1wmXfVNFkX0P.',
     'Demo Buyer',
     TRUE, TRUE, 100
 );
