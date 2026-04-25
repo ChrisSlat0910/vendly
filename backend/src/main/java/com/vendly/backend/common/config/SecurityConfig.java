@@ -64,6 +64,7 @@ public class SecurityConfig {
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.GET,
                                                                 "/api/v1/market/**",
+                                                                "/api/v1/listings",
                                                                 "/api/v1/listings/{id}",
                                                                 "/api/v1/communities",
                                                                 "/api/v1/communities/{id}",
@@ -76,8 +77,6 @@ public class SecurityConfig {
                                                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                                                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                                                 .anyRequest().authenticated())
-                                // Di Spring Security 7.x, semua custom filter pakai
-                                // addFilterBefore dengan UsernamePasswordAuthenticationFilter sebagai anchor
                                 .addFilterBefore(correlationIdFilter,
                                                 UsernamePasswordAuthenticationFilter.class)
                                 .addFilterBefore(rateLimitFilter,
