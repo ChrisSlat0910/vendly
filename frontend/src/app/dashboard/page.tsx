@@ -19,6 +19,7 @@ import {
   Users,
   ShoppingBag,
   Calendar,
+  Shield,
 } from 'lucide-react'
 import {
   LineChart,
@@ -51,6 +52,7 @@ const STAGGER_CHILDREN_VARIANTS: Variants = {
 
 import { useAuth } from '@/lib/auth-context'
 import { listingsApi } from '@/lib/api/listings'
+import apiClient from '@/lib/api/client'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -110,6 +112,7 @@ export default function DashboardPage() {
   const [error, setError] = useState('')
   const [deleteId, setDeleteId] = useState<string | null>(null) // reserved for future use
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     if (!isInitializing && user) {
@@ -120,6 +123,10 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!isInitializing && !user) {
       router.push('/login')
+    } else if (user) {
+      apiClient.get(`/admin/users/${user.id}/is-admin`)
+        .then(res => setIsAdmin(res.data.data))
+        .catch(() => setIsAdmin(false))
     }
   }, [isInitializing, user, router])
 
@@ -236,6 +243,14 @@ export default function DashboardPage() {
             <p className="text-muted-foreground mt-1">Selamat datang di dashboard penjual Anda.</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
+            {isAdmin && (
+              <Button asChild variant="outline" className="gap-2 border-destructive/50 text-destructive hover:bg-destructive/10">
+                <Link href="/admin">
+                  <Shield className="h-4 w-4" />
+                  Admin Panel
+                </Link>
+              </Button>
+            )}
             <Button asChild variant="outline" className="gap-2">
               <Link href="/listings">
                 <Search className="h-4 w-4" />
