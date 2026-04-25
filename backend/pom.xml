@@ -14,8 +14,9 @@
     <version>0.0.1-SNAPSHOT</version>
 
     <properties>
-        <java.version>21</java.version>
-    </properties>
+    <java.version>21</java.version>
+    <spring-boot.version>4.0.5</spring-boot.version>
+</properties>
 
     <dependencies>
         <!-- Web -->
@@ -31,6 +32,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <!-- Pakai ini untuk Spring Boot 4.x -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-aspectj</artifactId>
+</dependency>
 
         <!-- Data -->
         <dependency>
@@ -135,6 +141,7 @@
             <version>1.19.3</version>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>

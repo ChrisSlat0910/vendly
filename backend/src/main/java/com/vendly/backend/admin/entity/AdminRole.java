@@ -1,6 +1,5 @@
 package com.vendly.backend.admin.entity;
 
-import com.vendly.backend.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,13 +18,11 @@ public class AdminRole {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @OneToOne
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
-    private User user;
+    @Column(name = "user_id", nullable = false, unique = true)
+    private UUID userId;
 
-    @ManyToOne
-    @JoinColumn(name = "granted_by")
-    private User grantedBy;
+    @Column(name = "granted_by")
+    private UUID grantedBy;
 
     @Column(name = "granted_at", updatable = false)
     private LocalDateTime grantedAt;
